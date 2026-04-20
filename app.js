@@ -433,6 +433,634 @@ const blocks = [
   }
 ];
 
+function choiceChallenge({ type, question, correct, wrong, hint, visual, explain }) {
+  return {
+    type,
+    question,
+    answers: [String(correct), ...wrong.map(String)],
+    correct: 0,
+    hint,
+    visual,
+    explain
+  };
+}
+
+function uniqueWrong(correct, options) {
+  const correctText = String(correct);
+  const wrong = options
+    .map(String)
+    .filter((option, index, list) => option !== correctText && list.indexOf(option) === index)
+    .slice(0, 3);
+  const numberMatch = correctText.match(/-?\d+(?:[.,]\d+)?/);
+  const number = numberMatch ? Number(numberMatch[0].replace(",", ".")) : null;
+  const formatLikeCorrect = (value) => {
+    if (correctText.startsWith("R$")) return `R$ ${value},00`;
+    if (correctText.includes("°C")) return `${value} °C`;
+    if (correctText.includes("cm²")) return `${value} cm²`;
+    if (correctText.includes("cm")) return `${value} cm`;
+    if (correctText.includes("km")) return `${value} km`;
+    if (correctText.includes("°")) return `${value}°`;
+    return String(value);
+  };
+  let step = 1;
+  while (wrong.length < 3 && Number.isFinite(number)) {
+    const candidate = formatLikeCorrect(number + step);
+    if (candidate !== correctText && !wrong.includes(candidate)) {
+      wrong.push(candidate);
+    }
+    step += 1;
+  }
+  return wrong.slice(0, 3);
+}
+
+function generateIntegerChallenges(total) {
+  const challenges = [];
+  for (let i = 0; challenges.length < total; i += 1) {
+    const kind = i % 5;
+    if (kind === 0) {
+      const start = -10 + (i % 9);
+      const change = 4 + (i % 8);
+      const result = start + change;
+      challenges.push(choiceChallenge({
+        type: "Temperatura",
+        question: `A temperatura era ${start} °C e subiu ${change} °C. Qual ficou sendo a temperatura?`,
+        correct: `${result} °C`,
+        wrong: uniqueWrong(`${result} °C`, [`${start - change} °C`, `${Math.abs(result)} °C`, `${change - start} °C`, `${result - 2} °C`]),
+        hint: "Quando sobe, somamos na reta numérica.",
+        visual: { kind: "line", marker: Math.max(-12, Math.min(12, result)) },
+        explain: `${start} + ${change} = ${result}.`
+      }));
+    } else if (kind === 1) {
+      const value = -(3 + (i % 18));
+      challenges.push(choiceChallenge({
+        type: "Oposto",
+        question: `Qual é o oposto de ${value}?`,
+        correct: -value,
+        wrong: uniqueWrong(-value, [value, 0, value * 2, -value + 2]),
+        hint: "O oposto troca o sinal.",
+        visual: { kind: "line", marker: Math.max(-12, value) },
+        explain: `O oposto de ${value} é ${-value}.`
+      }));
+    } else if (kind === 2) {
+      const a = -(2 + (i % 8));
+      const b = 2 + (i % 7);
+      const result = a * b;
+      challenges.push(choiceChallenge({
+        type: "Multiplicação",
+        question: `Resolva: (${a}) × ${b}`,
+        correct: result,
+        wrong: uniqueWrong(result, [Math.abs(result), a + b, result + b, result - b]),
+        hint: "Sinais diferentes dão resultado negativo.",
+        visual: { kind: "tiles", filled: Math.min(Math.abs(result), 24), total: Math.min(Math.abs(result) + 4, 30) },
+        explain: `${Math.abs(a)} × ${b} = ${Math.abs(result)} e o sinal é negativo.`
+      }));
+    } else if (kind === 3) {
+      const money = 12 + (i % 16);
+      const spent = money + 3 + (i % 9);
+      const result = money - spent;
+      challenges.push(choiceChallenge({
+        type: "Saldo",
+        question: `Uma aluna tinha R$ ${money},00 e gastou R$ ${spent},00. Qual é o saldo?`,
+        correct: `R$ ${result},00`,
+        wrong: uniqueWrong(`R$ ${result},00`, [`R$ ${spent - money},00`, `R$ ${money + spent},00`, `R$ ${-result + 2},00`, `R$ ${result - 3},00`]),
+        hint: "Gastar é subtrair.",
+        visual: { kind: "line", marker: Math.max(-12, Math.min(12, result)) },
+        explain: `${money} - ${spent} = ${result}.`
+      }));
+    } else {
+      const values = [-18 + i, -7 - (i % 7), -3 - (i % 4), -12 + (i % 5)];
+      const correct = Math.max(...values);
+      challenges.push(choiceChallenge({
+        type: "Comparação",
+        question: `Qual destes números inteiros é o maior?`,
+        correct,
+        wrong: uniqueWrong(correct, values),
+        hint: "Na reta numérica, o maior fica mais à direita.",
+        visual: { kind: "line", marker: Math.max(-12, Math.min(12, correct)) },
+        explain: `${correct} é o maior porque está mais perto da direita na reta.`
+      }));
+    }
+  }
+  return challenges;
+}
+
+function generateFractionChallenges(total) {
+  const challenges = [];
+  const fractionPairs = [[1, 2], [2, 3], [3, 4], [2, 5], [5, 6], [3, 8]];
+  for (let i = 0; challenges.length < total; i += 1) {
+    const [num, den] = fractionPairs[i % fractionPairs.length];
+    const kind = i % 5;
+    if (kind === 0) {
+      const factor = 2 + (i % 4);
+      const correct = `${num * factor}/${den * factor}`;
+      challenges.push(choiceChallenge({
+        type: "Frações equivalentes",
+        question: `Qual fração é equivalente a ${num}/${den}?`,
+        correct,
+        wrong: uniqueWrong(correct, [`${num + factor}/${den + factor}`, `${den}/${num}`, `${num}/${den * factor}`, `${num * factor}/${den}`]),
+        hint: "Multiplique numerador e denominador pelo mesmo número.",
+        visual: { kind: "fraction", filled: num, total: den },
+        explain: `${num}/${den} × ${factor}/${factor} = ${correct}.`
+      }));
+    } else if (kind === 1) {
+      const decimals = [
+        ["0,5", "1/2", 1, 2],
+        ["0,25", "1/4", 1, 4],
+        ["0,75", "3/4", 3, 4],
+        ["0,2", "1/5", 1, 5],
+        ["0,6", "3/5", 3, 5]
+      ];
+      const item = decimals[i % decimals.length];
+      challenges.push(choiceChallenge({
+        type: "Decimal",
+        question: `${item[0]} corresponde a qual fração?`,
+        correct: item[1],
+        wrong: uniqueWrong(item[1], ["1/10", "2/3", "4/5", "5/4"]),
+        hint: "Transforme o decimal em uma fração de 10 ou 100 e simplifique.",
+        visual: { kind: "fraction", filled: item[2], total: item[3] },
+        explain: `${item[0]} é o mesmo que ${item[1]}.`
+      }));
+    } else if (kind === 2) {
+      const d = 4 + (i % 6);
+      const a = 1 + (i % 2);
+      const b = 1 + ((i + 1) % 2);
+      const sum = a + b;
+      challenges.push(choiceChallenge({
+        type: "Soma",
+        question: `Calcule: ${a}/${d} + ${b}/${d}`,
+        correct: `${sum}/${d}`,
+        wrong: uniqueWrong(`${sum}/${d}`, [`${a + b}/${d + d}`, `${a * b}/${d}`, `${sum + 1}/${d}`, `${sum}/${d + 1}`]),
+        hint: "Com denominadores iguais, some os numeradores.",
+        visual: { kind: "fraction", filled: sum, total: d },
+        explain: `${a}/${d} + ${b}/${d} = ${sum}/${d}.`
+      }));
+    } else if (kind === 3) {
+      const amount = 20 + (i % 9) * 5;
+      const d = [4, 5, 10][i % 3];
+      const n = [1, 2, 3][i % 3];
+      const result = (amount / d) * n;
+      challenges.push(choiceChallenge({
+        type: "Parte de um todo",
+        question: `Quanto é ${n}/${d} de ${amount}?`,
+        correct: result,
+        wrong: uniqueWrong(result, [amount / d, amount - result, result + d, amount + result]),
+        hint: "Divida pelo denominador e multiplique pelo numerador.",
+        visual: { kind: "tiles", filled: Math.min(result, 24), total: Math.min(amount, 30) },
+        explain: `${amount} ÷ ${d} × ${n} = ${result}.`
+      }));
+    } else {
+      const options = ["1/2", "2/3", "3/5", "5/8"];
+      challenges.push(choiceChallenge({
+        type: "Comparação",
+        question: "Qual fração é maior?",
+        correct: "2/3",
+        wrong: uniqueWrong("2/3", options),
+        hint: "Compare usando aproximações decimais.",
+        visual: { kind: "fraction", filled: 2, total: 3 },
+        explain: "2/3 é aproximadamente 0,67, maior que as outras opções."
+      }));
+    }
+  }
+  return challenges;
+}
+
+function generatePercentChallenges(total) {
+  const challenges = [];
+  for (let i = 0; challenges.length < total; i += 1) {
+    const kind = i % 5;
+    if (kind === 0) {
+      const value = 80 + (i % 9) * 20;
+      const percent = [10, 20, 25, 50][i % 4];
+      const result = value * percent / 100;
+      challenges.push(choiceChallenge({
+        type: "Porcentagem",
+        question: `Quanto é ${percent}% de ${value}?`,
+        correct: result,
+        wrong: uniqueWrong(result, [value - result, result + 10, percent, value + result]),
+        hint: "Porcentagem é uma parte de 100.",
+        visual: { kind: "chart", bars: [value, result], labels: ["Total", "Parte"] },
+        explain: `${percent}% de ${value} = ${result}.`
+      }));
+    } else if (kind === 1) {
+      const a = 6 + (i % 8) * 2;
+      const b = 4 + (i % 8);
+      const divisor = gcd(a, b);
+      const correct = `${a / divisor}:${b / divisor}`;
+      challenges.push(choiceChallenge({
+        type: "Razão",
+        question: `Simplifique a razão ${a}:${b}.`,
+        correct,
+        wrong: uniqueWrong(correct, [`${b}:${a}`, `${a + b}:${b}`, `${a}:${a + b}`, `${a * 2}:${b * 2}`]),
+        hint: "Divida os dois números pelo mesmo divisor.",
+        visual: { kind: "chart", bars: [a, b], labels: ["A", "B"] },
+        explain: `${a}:${b} simplifica para ${correct}.`
+      }));
+    } else if (kind === 2) {
+      const units = 3 + (i % 5);
+      const unitPrice = 4 + (i % 7);
+      const wanted = units + 2;
+      const result = wanted * unitPrice;
+      challenges.push(choiceChallenge({
+        type: "Regra de três",
+        question: `Se ${units} lápis custam R$ ${units * unitPrice},00, quanto custam ${wanted} lápis?`,
+        correct: `R$ ${result},00`,
+        wrong: uniqueWrong(`R$ ${result},00`, [`R$ ${result - unitPrice},00`, `R$ ${result + unitPrice},00`, `R$ ${units * unitPrice},00`, `R$ ${wanted + unitPrice},00`]),
+        hint: "Descubra o preço de uma unidade.",
+        visual: { kind: "chart", bars: [units, wanted], labels: [`${units}`, `${wanted}`] },
+        explain: `Cada lápis custa R$ ${unitPrice},00; então ${wanted} custam R$ ${result},00.`
+      }));
+    } else if (kind === 3) {
+      const value = 100 + (i % 8) * 25;
+      const percent = [5, 10, 20][i % 3];
+      const result = value + value * percent / 100;
+      challenges.push(choiceChallenge({
+        type: "Aumento",
+        question: `Um valor de ${value} aumentou ${percent}%. Qual é o novo valor?`,
+        correct: result,
+        wrong: uniqueWrong(result, [value - percent, value + percent, value * percent / 100, result + percent]),
+        hint: "Calcule a porcentagem e some ao valor inicial.",
+        visual: { kind: "chart", bars: [value, result], labels: ["Antes", "Depois"] },
+        explain: `${percent}% de ${value} é ${value * percent / 100}; novo valor: ${result}.`
+      }));
+    } else {
+      const cm = 2 + (i % 9);
+      const scale = 3 + (i % 5);
+      challenges.push(choiceChallenge({
+        type: "Escala",
+        question: `Em um mapa, 1 cm representa ${scale} km. ${cm} cm representam quantos km?`,
+        correct: `${cm * scale} km`,
+        wrong: uniqueWrong(`${cm * scale} km`, [`${cm + scale} km`, `${cm * scale * 10} km`, `${scale - cm} km`, `${cm} km`]),
+        hint: "Multiplique a medida do mapa pela escala.",
+        visual: { kind: "line", marker: Math.min(12, cm) },
+        explain: `${cm} × ${scale} = ${cm * scale} km.`
+      }));
+    }
+  }
+  return challenges;
+}
+
+function generateAlgebraChallenges(total) {
+  const challenges = [];
+  for (let i = 0; challenges.length < total; i += 1) {
+    const kind = i % 5;
+    const x = 2 + (i % 10);
+    if (kind === 0) {
+      const add = 3 + (i % 9);
+      challenges.push(choiceChallenge({
+        type: "Equação",
+        question: `Se x + ${add} = ${x + add}, qual é o valor de x?`,
+        correct: x,
+        wrong: uniqueWrong(x, [x + add, add, x - 1, x + 2]),
+        hint: "Subtraia o mesmo número dos dois lados.",
+        visual: { kind: "balance", left: `x + ${add}`, right: x + add },
+        explain: `x = ${x + add} - ${add} = ${x}.`
+      }));
+    } else if (kind === 1) {
+      const factor = 2 + (i % 5);
+      challenges.push(choiceChallenge({
+        type: "Equação",
+        question: `Resolva: ${factor}x = ${factor * x}`,
+        correct: x,
+        wrong: uniqueWrong(x, [factor * x, x + factor, factor, x - 1]),
+        hint: "Divida os dois lados pelo número que multiplica x.",
+        visual: { kind: "balance", left: `${factor}x`, right: factor * x },
+        explain: `x = ${factor * x} ÷ ${factor} = ${x}.`
+      }));
+    } else if (kind === 2) {
+      const factor = 2 + (i % 4);
+      const add = 1 + (i % 7);
+      const result = factor * x + add;
+      challenges.push(choiceChallenge({
+        type: "Valor numérico",
+        question: `Para x = ${x}, quanto vale ${factor}x + ${add}?`,
+        correct: result,
+        wrong: uniqueWrong(result, [factor + x + add, result - add, result + factor, x + add]),
+        hint: "Troque x pelo valor informado.",
+        visual: { kind: "balance", left: `${factor}x + ${add}`, right: "?" },
+        explain: `${factor} × ${x} + ${add} = ${result}.`
+      }));
+    } else if (kind === 3) {
+      challenges.push(choiceChallenge({
+        type: "Linguagem algébrica",
+        question: "A expressão 'o triplo de um número menos 4' é:",
+        correct: "3x - 4",
+        wrong: uniqueWrong("3x - 4", ["x/3 - 4", "3 - x - 4", "4x - 3", "3x + 4"]),
+        hint: "Triplo significa multiplicar por 3.",
+        visual: { kind: "balance", left: "triplo - 4", right: "3x - 4" },
+        explain: "O triplo de x é 3x; menos 4 fica 3x - 4."
+      }));
+    } else {
+      const start = 1 + (i % 5);
+      const step = 2 + (i % 6);
+      challenges.push(choiceChallenge({
+        type: "Sequência",
+        question: `Na sequência ${start}, ${start + step}, ${start + step * 2}, ${start + step * 3}, a regra é:`,
+        correct: `somar ${step}`,
+        wrong: uniqueWrong(`somar ${step}`, [`multiplicar por ${step}`, `subtrair ${step}`, `somar ${start}`, `dividir por ${step}`]),
+        hint: "Observe quanto aumenta de um termo para o próximo.",
+        visual: { kind: "chart", bars: [start, start + step, start + step * 2, start + step * 3], labels: ["1", "2", "3", "4"] },
+        explain: `Cada termo aumenta ${step}.`
+      }));
+    }
+  }
+  return challenges;
+}
+
+function generateGeometryChallenges(total) {
+  const challenges = [];
+  for (let i = 0; challenges.length < total; i += 1) {
+    const kind = i % 5;
+    if (kind === 0) {
+      const a = 4 + (i % 8);
+      const b = 3 + (i % 7);
+      challenges.push(choiceChallenge({
+        type: "Área",
+        question: `Um retângulo mede ${a} cm por ${b} cm. Qual é a área?`,
+        correct: `${a * b} cm²`,
+        wrong: uniqueWrong(`${a * b} cm²`, [`${2 * (a + b)} cm`, `${a + b} cm²`, `${a * b * 2} cm²`, `${a - b} cm²`]),
+        hint: "Área do retângulo é base vezes altura.",
+        visual: { kind: "shape", shape: "rect", a, b },
+        explain: `${a} × ${b} = ${a * b} cm².`
+      }));
+    } else if (kind === 1) {
+      const side = 3 + (i % 10);
+      challenges.push(choiceChallenge({
+        type: "Perímetro",
+        question: `Um quadrado tem lado de ${side} cm. Qual é o perímetro?`,
+        correct: `${side * 4} cm`,
+        wrong: uniqueWrong(`${side * 4} cm`, [`${side * side} cm²`, `${side * 2} cm`, `${side + 4} cm`, `${side * 3} cm`]),
+        hint: "Some os quatro lados.",
+        visual: { kind: "shape", shape: "square", a: side },
+        explain: `${side} × 4 = ${side * 4} cm.`
+      }));
+    } else if (kind === 2) {
+      const base = 6 + (i % 8);
+      const height = 4 + (i % 7);
+      const area = base * height / 2;
+      challenges.push(choiceChallenge({
+        type: "Triângulo",
+        question: `Um triângulo tem base ${base} cm e altura ${height} cm. Qual é a área?`,
+        correct: `${area} cm²`,
+        wrong: uniqueWrong(`${area} cm²`, [`${base * height} cm²`, `${base + height} cm²`, `${area + 5} cm²`, `${base * 2} cm²`]),
+        hint: "Área do triângulo é base vezes altura dividido por 2.",
+        visual: { kind: "shape", shape: "tri", a: base, b: height },
+        explain: `${base} × ${height} ÷ 2 = ${area} cm².`
+      }));
+    } else if (kind === 3) {
+      const radius = 2 + (i % 9);
+      challenges.push(choiceChallenge({
+        type: "Círculo",
+        question: `Um círculo tem raio de ${radius} cm. Qual é o diâmetro?`,
+        correct: `${radius * 2} cm`,
+        wrong: uniqueWrong(`${radius * 2} cm`, [`${radius} cm`, `${radius * radius} cm`, `${radius + 2} cm`, `${radius * 4} cm`]),
+        hint: "Diâmetro é o dobro do raio.",
+        visual: { kind: "shape", shape: "circle", a: radius },
+        explain: `2 × ${radius} = ${radius * 2} cm.`
+      }));
+    } else {
+      challenges.push(choiceChallenge({
+        type: "Unidades",
+        question: "Qual unidade é adequada para medir área?",
+        correct: "cm²",
+        wrong: uniqueWrong("cm²", ["cm", "kg", "mL", "min"]),
+        hint: "Área usa unidades quadradas.",
+        visual: { kind: "tiles", filled: 8, total: 16 },
+        explain: "Área é medida em unidades quadradas, como cm² e m²."
+      }));
+    }
+  }
+  return challenges;
+}
+
+function generateAngleChallenges(total) {
+  const challenges = [];
+  const polygonNames = ["triângulo", "quadrilátero", "pentágono", "hexágono", "heptágono", "octógono"];
+  for (let i = 0; challenges.length < total; i += 1) {
+    const kind = i % 5;
+    if (kind === 0) {
+      const degrees = [30, 45, 60, 90, 120, 150, 180][i % 7];
+      const correct = degrees < 90 ? "agudo" : degrees === 90 ? "reto" : degrees === 180 ? "raso" : "obtuso";
+      challenges.push(choiceChallenge({
+        type: "Classificação",
+        question: `Um ângulo de ${degrees}° é:`,
+        correct,
+        wrong: uniqueWrong(correct, ["agudo", "reto", "obtuso", "raso"]),
+        hint: "Compare com 90° e 180°.",
+        visual: { kind: "angle", degrees },
+        explain: `Um ângulo de ${degrees}° é ${correct}.`
+      }));
+    } else if (kind === 1) {
+      const a = 40 + (i % 5) * 5;
+      const b = 50 + (i % 4) * 5;
+      const c = 180 - a - b;
+      challenges.push(choiceChallenge({
+        type: "Triângulo",
+        question: `Em um triângulo, dois ângulos medem ${a}° e ${b}°. Quanto mede o terceiro?`,
+        correct: `${c}°`,
+        wrong: uniqueWrong(`${c}°`, [`${a + b}°`, `${180 - a}°`, `${180 - b}°`, `${c + 10}°`]),
+        hint: "A soma dos ângulos internos do triângulo é 180°.",
+        visual: { kind: "shape", shape: "tri", a, b },
+        explain: `180° - ${a}° - ${b}° = ${c}°.`
+      }));
+    } else if (kind === 2) {
+      const sides = 3 + (i % 6);
+      challenges.push(choiceChallenge({
+        type: "Polígonos",
+        question: `Um ${polygonNames[sides - 3]} tem quantos lados?`,
+        correct: sides,
+        wrong: uniqueWrong(sides, [sides + 1, sides - 1, sides + 2, sides * 2]),
+        hint: "Use o nome do polígono para lembrar a quantidade de lados.",
+        visual: { kind: "polygon", sides },
+        explain: `${polygonNames[sides - 3]} tem ${sides} lados.`
+      }));
+    } else if (kind === 3) {
+      const sides = 3 + (i % 5);
+      const sum = (sides - 2) * 180;
+      challenges.push(choiceChallenge({
+        type: "Soma interna",
+        question: `Qual é a soma dos ângulos internos de um polígono com ${sides} lados?`,
+        correct: `${sum}°`,
+        wrong: uniqueWrong(`${sum}°`, [`${sides * 180}°`, `${sum - 180}°`, `${sum + 90}°`, `${sides * 90}°`]),
+        hint: "Use a fórmula (n - 2) × 180°.",
+        visual: { kind: "polygon", sides },
+        explain: `(${sides} - 2) × 180° = ${sum}°.`
+      }));
+    } else {
+      const angle = [20, 35, 40, 55, 70][i % 5];
+      const complement = 90 - angle;
+      challenges.push(choiceChallenge({
+        type: "Complementares",
+        question: `Qual é o complemento de ${angle}°?`,
+        correct: `${complement}°`,
+        wrong: uniqueWrong(`${complement}°`, [`${180 - angle}°`, `${angle + 90}°`, `${angle}°`, `${complement + 10}°`]),
+        hint: "Ângulos complementares somam 90°.",
+        visual: { kind: "angle", degrees: angle },
+        explain: `90° - ${angle}° = ${complement}°.`
+      }));
+    }
+  }
+  return challenges;
+}
+
+function generateCartesianChallenges(total) {
+  const challenges = [];
+  for (let i = 0; challenges.length < total; i += 1) {
+    const kind = i % 5;
+    const x = -5 + (i % 11);
+    const y = -4 + ((i * 2) % 9);
+    if (kind === 0) {
+      challenges.push(choiceChallenge({
+        type: "Coordenada",
+        question: `No ponto (${x}, ${y}), qual é o valor de x?`,
+        correct: x,
+        wrong: uniqueWrong(x, [y, -x, -y, x + 1]),
+        hint: "x é o primeiro número do par ordenado.",
+        visual: { kind: "grid", x, y },
+        explain: `Em (${x}, ${y}), x = ${x}.`
+      }));
+    } else if (kind === 1) {
+      const correct = x < 0 && y > 0 ? "x negativo e y positivo" : x > 0 && y < 0 ? "x positivo e y negativo" : x >= 0 && y >= 0 ? "ambos positivos ou zero" : "ambos negativos";
+      challenges.push(choiceChallenge({
+        type: "Sinais",
+        question: `Observe o ponto (${x}, ${y}). Qual descrição combina com ele?`,
+        correct,
+        wrong: uniqueWrong(correct, ["x negativo e y positivo", "x positivo e y negativo", "ambos positivos ou zero", "ambos negativos"]),
+        hint: "Leia o sinal de cada coordenada.",
+        visual: { kind: "grid", x, y },
+        explain: `O ponto tem x = ${x} e y = ${y}.`
+      }));
+    } else if (kind === 2) {
+      const pointY = 2 + (i % 6);
+      challenges.push(choiceChallenge({
+        type: "Eixo",
+        question: `O ponto (0, ${pointY}) está sobre qual eixo?`,
+        correct: "eixo y",
+        wrong: uniqueWrong("eixo y", ["eixo x", "origem", "nenhum eixo", "reta diagonal"]),
+        hint: "Quando x = 0, o ponto fica no eixo vertical.",
+        visual: { kind: "grid", x: 0, y: pointY },
+        explain: `(0, ${pointY}) está no eixo y.`
+      }));
+    } else if (kind === 3) {
+      challenges.push(choiceChallenge({
+        type: "Origem",
+        question: "Qual ponto representa a origem do plano cartesiano?",
+        correct: "(0, 0)",
+        wrong: uniqueWrong("(0, 0)", ["(1, 1)", "(0, 1)", "(1, 0)", "(-1, 1)"]),
+        hint: "É onde os dois eixos se cruzam.",
+        visual: { kind: "grid", x: 0, y: 0 },
+        explain: "A origem é (0, 0)."
+      }));
+    } else {
+      const factor = 2 + (i % 4);
+      challenges.push(choiceChallenge({
+        type: "Padrão",
+        question: `Nos pontos (1, ${factor}), (2, ${factor * 2}), (3, ${factor * 3}), a regra é:`,
+        correct: `y = ${factor}x`,
+        wrong: uniqueWrong(`y = ${factor}x`, [`y = x + ${factor}`, `y = x - ${factor}`, `y = ${factor + 1}x`, `x = ${factor}y`]),
+        hint: "Veja quantas vezes o y vale em relação ao x.",
+        visual: { kind: "grid", x: 3, y: Math.min(7, factor * 3) },
+        explain: `O valor de y é ${factor} vezes o valor de x.`
+      }));
+    }
+  }
+  return challenges;
+}
+
+function generateStatsChallenges(total) {
+  const challenges = [];
+  for (let i = 0; challenges.length < total; i += 1) {
+    const kind = i % 5;
+    if (kind === 0) {
+      const a = 4 + (i % 5);
+      const b = a + 2;
+      const c = a + 4;
+      const mean = (a + b + c) / 3;
+      challenges.push(choiceChallenge({
+        type: "Média",
+        question: `As notas ${a}, ${b} e ${c} têm média:`,
+        correct: mean,
+        wrong: uniqueWrong(mean, [a + b + c, mean + 1, mean - 1, c]),
+        hint: "Some os valores e divida pela quantidade.",
+        visual: { kind: "chart", bars: [a, b, c], labels: ["N1", "N2", "N3"] },
+        explain: `(${a} + ${b} + ${c}) ÷ 3 = ${mean}.`
+      }));
+    } else if (kind === 1) {
+      const mode = 2 + (i % 6);
+      challenges.push(choiceChallenge({
+        type: "Moda",
+        question: `Na lista ${mode - 1}, ${mode}, ${mode}, ${mode + 2}, ${mode + 4}, qual é a moda?`,
+        correct: mode,
+        wrong: uniqueWrong(mode, [mode - 1, mode + 2, mode + 4, mode * 2]),
+        hint: "Moda é o valor que aparece mais vezes.",
+        visual: { kind: "chart", bars: [1, 2, 1, 1], labels: [`${mode - 1}`, `${mode}`, `${mode + 2}`, `${mode + 4}`] },
+        explain: `${mode} aparece duas vezes.`
+      }));
+    } else if (kind === 2) {
+      const red = 1 + (i % 4);
+      const blue = 2 + (i % 5);
+      const totalBalls = red + blue;
+      challenges.push(choiceChallenge({
+        type: "Probabilidade",
+        question: `Em uma caixa há ${red} bolas vermelhas e ${blue} azuis. A chance de tirar vermelha é:`,
+        correct: `${red}/${totalBalls}`,
+        wrong: uniqueWrong(`${red}/${totalBalls}`, [`${blue}/${totalBalls}`, `${red}/${blue}`, `1/${totalBalls}`, `${totalBalls}/${red}`]),
+        hint: "Probabilidade = casos favoráveis ÷ casos possíveis.",
+        visual: { kind: "balls", red, blue },
+        explain: `São ${red} vermelhas em ${totalBalls} bolas: ${red}/${totalBalls}.`
+      }));
+    } else if (kind === 3) {
+      const middle = 5 + (i % 8);
+      challenges.push(choiceChallenge({
+        type: "Mediana",
+        question: `Qual é a mediana de ${middle - 4}, ${middle - 1}, ${middle}, ${middle + 2}, ${middle + 5}?`,
+        correct: middle,
+        wrong: uniqueWrong(middle, [middle - 1, middle + 2, middle + 5, middle * 5]),
+        hint: "A mediana é o valor central da lista organizada.",
+        visual: { kind: "chart", bars: [middle - 4, middle - 1, middle, middle + 2, middle + 5], labels: ["", "", "", "", ""] },
+        explain: `O valor do meio é ${middle}.`
+      }));
+    } else {
+      const bars = [3 + (i % 4), 7 + (i % 5), 5 + (i % 3)];
+      const max = Math.max(...bars);
+      challenges.push(choiceChallenge({
+        type: "Gráfico",
+        question: `No gráfico com valores ${bars.join(", ")}, qual é o maior valor?`,
+        correct: max,
+        wrong: uniqueWrong(max, [bars[0], bars[2], max + 2, max - 2]),
+        hint: "Procure a barra mais alta.",
+        visual: { kind: "chart", bars, labels: ["A", "B", "C"] },
+        explain: `O maior valor é ${max}.`
+      }));
+    }
+  }
+  return challenges;
+}
+
+function gcd(a, b) {
+  return b === 0 ? a : gcd(b, a % b);
+}
+
+function expandBlocksToFifty() {
+  const generators = [
+    generateIntegerChallenges,
+    generateFractionChallenges,
+    generatePercentChallenges,
+    generateAlgebraChallenges,
+    generateGeometryChallenges,
+    generateAngleChallenges,
+    generateCartesianChallenges,
+    generateStatsChallenges
+  ];
+  blocks.forEach((block, index) => {
+    const missing = 50 - block.challenges.length;
+    if (missing > 0) {
+      block.challenges = [...block.challenges, ...generators[index](missing)];
+    }
+  });
+}
+
+expandBlocksToFifty();
+
 const state = {
   blockIndex: 0,
   challengeIndex: 0,
@@ -486,7 +1114,7 @@ function renderBlocks() {
         <span class="block-title">${block.title}</span>
         <span class="block-subtitle">${block.subtitle}</span>
       </span>
-      <span class="block-stars">${done}/5 ★</span>
+      <span class="block-stars">${done}/${block.challenges.length} ★</span>
     `;
     button.addEventListener("click", () => {
       state.blockIndex = index;
