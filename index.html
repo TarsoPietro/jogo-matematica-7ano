@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Matemática em Missão - 7º ano</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fraunces:wght@700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="mission-panel" aria-labelledby="game-title">
+        <div class="brand-line">
+          <span class="crest" aria-hidden="true">MA</span>
+          <span>Colégio Maria Auxiliadora · Rede Notre Dame</span>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <p class="eyebrow">7º ano · aventura matemática</p>
+            <h1 id="game-title">Matemática em Missão</h1>
+            <p class="intro">
+              Escolha um bloco, resolva desafios e ganhe estrelas enquanto aprende os conteúdos essenciais do 7º ano.
+            </p>
+            <div class="player-card">
+              <label for="player-name">Nome da aluna</label>
+              <div class="name-row">
+                <input id="player-name" maxlength="24" value="Estudante Notre Dame" />
+                <button id="save-name" type="button">Entrar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mascot-scene" aria-label="Mascote exploradora da matemática">
+            <svg viewBox="0 0 520 420" role="img">
+              <title>Exploradora segurando uma bússola matemática</title>
+              <defs>
+                <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+                  <stop offset="0" stop-color="#fff7b8" />
+                  <stop offset="1" stop-color="#9fe8d6" />
+                </linearGradient>
+              </defs>
+              <rect width="520" height="420" rx="28" fill="url(#sky)" />
+              <path d="M0 325 C95 280 168 365 265 315 C358 268 427 312 520 270 L520 420 L0 420 Z" fill="#31856f" />
+              <path d="M0 350 C105 315 190 393 294 344 C394 296 449 345 520 318 L520 420 L0 420 Z" fill="#6cc36e" />
+              <circle cx="410" cy="80" r="39" fill="#ffcf4f" />
+              <path d="M126 111 h98 l36 58 h-92 z" fill="#246b8a" />
+              <path d="M154 86 h42 l28 25 h-98 z" fill="#e6475b" />
+              <circle cx="196" cy="199" r="58" fill="#8b593f" />
+              <circle cx="185" cy="184" r="48" fill="#f4bd8b" />
+              <path d="M145 182 C160 124 217 125 235 179 C208 161 178 162 145 182 Z" fill="#5f392b" />
+              <circle cx="171" cy="190" r="5" fill="#21323a" />
+              <circle cx="204" cy="190" r="5" fill="#21323a" />
+              <path d="M174 214 C186 224 199 224 210 214" fill="none" stroke="#21323a" stroke-width="5" stroke-linecap="round" />
+              <path d="M128 302 C137 247 165 229 198 230 C238 231 265 255 272 303 Z" fill="#1d8fc1" />
+              <path d="M156 257 l-43 55" stroke="#f4bd8b" stroke-width="19" stroke-linecap="round" />
+              <path d="M246 257 l56 34" stroke="#f4bd8b" stroke-width="19" stroke-linecap="round" />
+              <circle cx="329" cy="272" r="49" fill="#ffffff" stroke="#21323a" stroke-width="7" />
+              <path d="M329 229 v86 M286 272 h86" stroke="#9b2fb4" stroke-width="5" stroke-linecap="round" />
+              <path d="M329 272 l31 -23 l-13 36 Z" fill="#e6475b" />
+              <path d="M100 325 h226" stroke="#21323a" stroke-width="8" stroke-linecap="round" />
+              <g fill="#ffffff" stroke="#21323a" stroke-width="4">
+                <rect x="365" y="184" width="64" height="64" rx="10" />
+                <path d="M382 205 h31 M382 226 h31 M397 195 v42" />
+              </g>
+              <text x="371" y="160" fill="#21323a" font-size="30" font-family="Arial" font-weight="700">x + 7</text>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="status-strip" aria-label="Progresso do jogo">
+        <div>
+          <span class="status-label">Jogadora</span>
+          <strong id="player-display">Estudante Notre Dame</strong>
+        </div>
+        <div>
+          <span class="status-label">Estrelas</span>
+          <strong><span id="stars">0</span> ★</strong>
+        </div>
+        <div>
+          <span class="status-label">Sequência</span>
+          <strong><span id="streak">0</span> acertos</strong>
+        </div>
+        <button id="reset-progress" type="button">Recomeçar</button>
+      </section>
+
+      <section class="content-grid">
+        <aside class="map-panel" aria-label="Blocos de conteúdo">
+          <h2>Mapa dos Blocos</h2>
+          <p>Complete missões para dominar o conteúdo do 7º ano.</p>
+          <div id="block-list" class="block-list"></div>
+        </aside>
+
+        <section class="game-panel" aria-live="polite">
+          <div class="game-header">
+            <div>
+              <p id="block-kicker" class="eyebrow">Bloco 1</p>
+              <h2 id="block-title">Números inteiros</h2>
+            </div>
+            <div class="badge" id="difficulty">Aquecimento</div>
+          </div>
+
+          <div class="lesson-box">
+            <h3>Resumo rápido</h3>
+            <p id="lesson-text"></p>
+          </div>
+
+          <div class="challenge-card">
+            <div class="challenge-top">
+              <span id="challenge-type">Desafio</span>
+              <span id="challenge-count">1 de 5</span>
+            </div>
+            <div id="visual-area" class="visual-area"></div>
+            <h3 id="question"></h3>
+            <div id="answers" class="answers"></div>
+            <div id="feedback" class="feedback" role="status"></div>
+          </div>
+
+          <div class="action-row">
+            <button id="hint-button" type="button">Dica</button>
+            <button id="next-button" type="button" disabled>Próximo desafio</button>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
